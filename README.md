@@ -3,13 +3,14 @@
 This parser reads a folder which contains one or multiple Simulink models and outputs a JSON file using the knowledge representation outlined in [Enabling Analysis and Reasoning on Software Systems through Knowledge Graph Representation (MSR'23)](https://doi.org/10.1109/MSR59073.2023.00029)
 
 To use the parser follow the steps below:
+
 ```bash
 # Create and activate a virtual environment
-pip -m venv env
+python -m venv env
 source env/bin/activate
 
 # Install the dependencies
-pip install requirements.txt
+pip install -r requirements.txt
 
 # Run the help menu for further instructions
 python simulink_parser.py
