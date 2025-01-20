@@ -129,7 +129,7 @@ def parse_new_named_ports(port_info, parent_id, graph):
 
 
 def parse_old_style_ports(port, parent_id, graph):
-    match = re.search(r'\[((\d{1,4}),\s*(\d{1,4}))?\]', port.text)
+    match = re.search(r'\[((\d{1,4}),\s*(\d{1,4}))?', port.text)
     if not match or None in match.groups():
         LOG_DEBUG(f'Block {port.attrib['Name']} has no ports')
         return
@@ -304,6 +304,14 @@ def parse_constant(block, parent_id, graph):
 
     # Make sure this block is contained in the parent node
     graph.elements.edges.append(create_contains_edge(parent_id, node.data.id, 'hasVariable'))
+
+
+def parse_enable_port(block, parent_id, graph):
+    # This is essentially a port that Matlab treats as a block
+    LOG_DEBUG(f'Parsing EnablePort: {block.attrib["Name"]}')
+
+    # Since it is a port, it is created in by its owner and there it no need to recreate it here
+    return
 
 
 def parse_primitive(block, parent_id, graph):

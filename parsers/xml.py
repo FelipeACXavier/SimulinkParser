@@ -117,6 +117,8 @@ def parse_blocks(system, parent_id, graph, systems):
             bp.parse_reference(block, parent_id, graph)
         elif block_type == 'Constant':
             bp.parse_constant(block, parent_id, graph)
+        elif block_type == 'EnablePort':
+            bp.parse_enable_port(block, parent_id, graph)
         else:
             bp.parse_primitive(block, parent_id, graph)
 

@@ -121,9 +121,14 @@ def find_all_and_parse(root_dir, parent_id, graph, args):
         find_all_and_parse(path, package, graph, args)
 
 
-def main(args):
-    start_logger(LogLevel[args.log_level])
+def parse_xml_file(args, graph):
+    file = Path(args.xml)
+    set_system_level("root")
 
+    parse_XML(file, "root", graph, [])
+
+
+def parse_simulink_files(args, graph):
     current_dir = Path(args.dir)
     systems_dir = 'simulink/systems'
 
@@ -150,10 +155,20 @@ def main(args):
     # With the information gathered, it is time to traverse the folder
     find_all_and_parse(current_dir.absolute(), system_uid, graph, args)
 
+
+def main(args):
+    start_logger(LogLevel[args.log_level])
+
+    # Create global graph
+    graph = dt.Graph()
+
+    if args.xml is None:
+        parse_simulink_files(args, graph)
+    else:
+        parse_xml_file(args, graph)
+
     with open(args.output, 'w+') as file:
         file.write(json.dumps(json.loads(graph.to_json()), indent=2 if args.formatted else None))
-
-        # print(json.dumps(json.loads(graph.to_json()), indent=2))
 
 
 # ============================================================================================================
@@ -166,6 +181,7 @@ parser.add_argument("-e", "--exclude", nargs='*', default=[], help="Modules to e
 parser.add_argument("-i", "--include", nargs='*', default=[], help="Only include modules listed here")
 parser.add_argument("-f", "--formatted", action='store_true', help="Whether the output file should be formatted")
 parser.add_argument("-l", "--list", action='store_true', help="Just list encountered modules without parsing")
+parser.add_argument("--xml", default=None, type=str, help="Parse an XML file instead")
 parser.add_argument("--log-level", default='INFO', type=str,
                     help="Level of logging to output during parsing: ERROR, WARNING, INFO, DEBUG")
 
