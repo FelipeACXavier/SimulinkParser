@@ -1,0 +1,3 @@
+[submodule "srcML"]
+	path = srcML
+	url = https://github.com/srcML/srcML.git
