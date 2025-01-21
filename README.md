@@ -42,8 +42,9 @@ The complete list of dependencies for different operating systems is available i
 To compile the tool, follow the instructions below:
 
 ```bash
-# Clone the git repository 
-git clone https://github.com/srcML/srcML.git
+# Clone the submodule
+git submodule init
+git submodule update
 
 # cd into that directory
 cd srcML
@@ -51,11 +52,8 @@ cd srcML
 # Create build directory
 mkdir build && cd build
 
-# Download the required boost libraries
-wget -qO- http://www.sdml.cs.kent.edu/build/srcML-1.0.0-Boost.tar.gz | gunzip | tar xvf -
-
 # Prepare to build
-cmake -DBOOST_INCLUDES=./ ../
+cmake -DBoost_INCLUDE_DIR=../../include ../
 
 # Build
 make -j4
