@@ -1,0 +1,17 @@
+LICENSE
+README.md
+pyproject.toml
+setup.cfg
+source/SimulinkParser.egg-info/PKG-INFO
+source/SimulinkParser.egg-info/SOURCES.txt
+source/SimulinkParser.egg-info/dependency_links.txt
+source/SimulinkParser.egg-info/requires.txt
+source/SimulinkParser.egg-info/top_level.txt
+source/common/__init__.py
+source/common/datatypes.py
+source/common/helpers.py
+source/common/logging.py
+source/parsers/__init__.py
+source/parsers/block.py
+source/parsers/line.py
+source/parsers/xml.py

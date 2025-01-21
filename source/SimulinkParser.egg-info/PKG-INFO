@@ -1,0 +1,125 @@
+Metadata-Version: 2.2
+Name: SimulinkParser
+Version: 1.0
+Summary: Script to parse Simulink models so that they can be visualized with the ClassViz format
+Author-email: Felipe Xavier <f.d.azeredo.coutinho.xavier@tue.nl>
+License: MIT License
+        
+        Copyright (c) 2024 Felipe Xavier
+        
+        Permission is hereby granted, free of charge, to any person obtaining a copy
+        of this software and associated documentation files (the "Software"), to deal
+        in the Software without restriction, including without limitation the rights
+        to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+        copies of the Software, and to permit persons to whom the Software is
+        furnished to do so, subject to the following conditions:
+        
+        The above copyright notice and this permission notice shall be included in all
+        copies or substantial portions of the Software.
+        
+        THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+        IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+        FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+        AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+        LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+        OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+        SOFTWARE.
+        
+Keywords: interface,digital,twin
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: astroid==3.3.8
+Requires-Dist: autopep8==2.3.1
+Requires-Dist: dataclasses-json==0.6.7
+Requires-Dist: dill==0.3.9
+Requires-Dist: isort==5.13.2
+Requires-Dist: marshmallow==3.25.1
+Requires-Dist: mccabe==0.7.0
+Requires-Dist: mypy-extensions==1.0.0
+Requires-Dist: packaging==24.2
+Requires-Dist: platformdirs==4.3.6
+Requires-Dist: pycodestyle==2.12.1
+Requires-Dist: pylint==3.3.3
+Requires-Dist: tomlkit==0.13.2
+Requires-Dist: typing-inspect==0.9.0
+Requires-Dist: typing_extensions==4.12.2
+
+# Simulink parser
+
+This parser reads a folder which contains one or multiple Simulink models and outputs a JSON file using the knowledge representation outlined in [Enabling Analysis and Reasoning on Software Systems through Knowledge Graph Representation (MSR'23)](https://doi.org/10.1109/MSR59073.2023.00029)
+
+To use the parser follow the steps below:
+
+```bash
+# Create and activate a virtual environment
+python -m venv env
+source env/bin/activate
+
+# Install the dependencies
+pip install -r requirements.txt
+
+# Run the help menu for further instructions
+python simulink_parser.py
+```
+
+## Structure
+
+Since Simulink doesn't follow a common object oriented approach, some insights were necessary to make the representation work with it.
+
+The mapping is shown below:
+
+| Matlab              | Representation  |
+| ------------------- | --------------- |
+| *Ports*             | *Methods*       |
+| *Blocks*            | *Classes*       |
+| *Folders*           | *Packages*      |
+| *Block parameters*  | *Members*       |
+
+Since the Simulink descriptor does not provide the data type of the ports, each method, i.e., port, 
+assumes a "matlab object" data type.
+
+Based on the selected representation, when there is a signal between two blocks in Simulink, the communicating ports are connected through an "*invokes*" edge type.
+
+## Parsing C/C++ 
+
+To parse the S-Function blocks, the parser requires the [srcML](https://www.srcml.org/) tool that does a pretty good job of parsing these source codes.
+However, this tool needs to be compiled before it can be used. 
+The complete list of dependencies for different operating systems is available in the [official build instructions](https://github.com/lihebi/srcml/blob/master/BUILD.md).
+To compile the tool, follow the instructions below:
+
+```bash
+# Clone the git repository 
+git clone https://github.com/srcML/srcML.git
+
+# cd into that directory
+cd srcML
+
+# Create build directory
+mkdir build && cd build
+
+# Download the required boost libraries
+wget -qO- http://www.sdml.cs.kent.edu/build/srcML-1.0.0-Boost.tar.gz | gunzip | tar xvf -
+
+# Prepare to build
+cmake -DBOOST_INCLUDES=./ ../
+
+# Build
+make -j4
+```
+
+srcML outputs a specific flavour of XML that is much easier to parse compared to standard C/C++. 
+This is the output used by our S-Function parser.
+
+## Known limitations
+
+MathWorks like to change their file structure from time to time what makes it hard to ensure the correct parsing for all the innumerable Matlab/Simulink versions.
+Taking that in consideration, we decided to limit the scope of the parser to more recent versions.
+Therefore, the parser was only tested with versions 2018b to 2024b.
+
+## To Do
+
+While a lot is already done, this is an ongoing project.
+The parser was tested with Simulink 2018b until 2024b.
+
+- [ ] Parse C functions embedded as S-Functions
+- [ ] Create link between S-Functions and the called C functions
