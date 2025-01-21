@@ -8,6 +8,7 @@ import common.datatypes as dt
 
 from common.helpers import *
 from common.logging import *
+from common.file_system import create_dir
 from parsers.xml import parse_XML, create_connections
 
 
@@ -162,6 +163,7 @@ def parse_simulink_files(args, graph):
 
 def main(args):
     start_logger(LogLevel[args.log_level])
+    set_srcml(args.srcML)
 
     # Create global graph
     graph = dt.Graph()
@@ -186,6 +188,7 @@ parser.add_argument("-i", "--include", nargs='*', default=[], help="Only include
 parser.add_argument("-f", "--formatted", action='store_true', help="Whether the output file should be formatted")
 parser.add_argument("-l", "--list", action='store_true', help="Just list encountered modules without parsing")
 parser.add_argument("--xml", default=None, type=str, help="Parse an XML file instead")
+parser.add_argument("--srcML", default="./srcML/build/bin/srcml", type=str, help="Full SrcML executable path")
 parser.add_argument("--log-level", default='INFO', type=str,
                     help="Level of logging to output during parsing: ERROR, WARNING, INFO, DEBUG")
 

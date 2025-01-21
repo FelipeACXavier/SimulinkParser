@@ -8,6 +8,7 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 from common.helpers import *
 from common.logging import *
+from common.file_system import run_command
 
 
 def create_node_data(block, labels, visibility, kind=None):
@@ -216,8 +217,8 @@ def parse_c_file(function_name, graph):
 
     LOG_INFO(f'Found C function in: {c_file}, writing to {out_file}')
 
-    if not run_command(f'/home/felaze/Documents/PhD/Programs/SimulinkParser/srcML/build/bin/srcml {in_file} -o {out_file}'):
-        raise Exception(f'Failed to parse C function: {in_file}')
+    if not (ret := run_command(f'{get_srcml()} {in_file} -o {out_file}')):
+        raise Exception(f'Failed to parse C function: {ret.message}')
 
 
 def parse_s_function(block, parent_id, graph):
