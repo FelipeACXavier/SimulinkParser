@@ -1,14 +1,52 @@
+import os
 import json
+import subprocess
 
 # Debug
 from xml.dom import minidom
 import xml.etree.ElementTree as ET
+
+from common.logging import *
 
 # Constants
 MATLAB_TYPE = 'matlab_object'
 SYSTEM_ROOT = 'system_root.xml'
 TMP_DIR = 'tmp'
 SYSTEM_DIR = 'simulink/systems'
+
+
+def create_dir(dir_name):
+    try:
+        os.makedirs(dir_name)
+    except FileExistsError as e:
+        pass
+
+
+def run_command(command, tail=True):
+    process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+
+    # Poll process for new output until finished
+    if tail:
+        with process.stdout as pipe:
+            for line in iter(pipe.readline, b''):
+                print(line.decode("utf-8"), end='')
+
+    process.wait()
+    if process.returncode != 0:
+        LOG_ERROR(f'Failed to run command {command}')
+        return False
+
+    return True
+
+
+def set_root_dir(root_dir):
+    global ROOT_DIR
+    ROOT_DIR = root_dir
+
+
+def get_root_dir():
+    global ROOT_DIR
+    return ROOT_DIR
 
 
 def set_system_level(level):

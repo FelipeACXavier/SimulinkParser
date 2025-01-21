@@ -127,13 +127,17 @@ def parse_xml_file(args, graph):
 
     parse_XML(file, "root", graph, [])
 
+    # LOG_DEBUG(f'Creating connections for {file.name}')
+    # create_connections(graph)
+
 
 def parse_simulink_files(args, graph):
     current_dir = Path(args.dir)
     systems_dir = 'simulink/systems'
 
-    # Create global graph
-    graph = dt.Graph()
+    # Make sure that the root directory is known globally
+    set_root_dir(current_dir)
+    create_dir(f'{get_root_dir()}/{TMP_DIR}')
 
     # Define some type to be used as return
     n_data = dt.NodeData()

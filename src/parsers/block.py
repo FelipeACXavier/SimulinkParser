@@ -54,14 +54,14 @@ def create_variable(element, parent):
 
 def find_file(filename):
     # Main directory sits above module directory
-    for dirpath, dnames, fnames in os.walk("./"):
+    for dirpath, dnames, fnames in os.walk(get_root_dir()):
 
         # Ignore the virtual environment and the temporary paths
         if 'env' in dirpath or 'tmp' in dirpath:
             continue
 
         for f in fnames:
-            if filename in f:
+            if filename == Path(f).stem:
                 return Path(os.path.join(dirpath, f))
 
     return None
@@ -208,10 +208,16 @@ def parse_ports(block, parent, graph):
 def parse_c_file(function_name, graph):
     c_file = find_file(function_name)
     if c_file is None:
-        # LOG_WARNING(f'Could not find {function_name} in the current path')
+        LOG_WARNING(f'Could not find {function_name} in the current path')
         return
 
-    LOG_DEBUG(f'Found C function in: {c_file.absolute()}')
+    in_file = f'{c_file.absolute()}'
+    out_file = f'{get_root_dir()}/{TMP_DIR}/{c_file.stem}.xml'
+
+    LOG_INFO(f'Found C function in: {c_file}, writing to {out_file}')
+
+    if not run_command(f'/home/felaze/Documents/PhD/Programs/SimulinkParser/srcML/build/bin/srcml {in_file} -o {out_file}'):
+        raise Exception(f'Failed to parse C function: {in_file}')
 
 
 def parse_s_function(block, parent_id, graph):

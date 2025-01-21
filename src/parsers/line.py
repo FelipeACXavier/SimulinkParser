@@ -5,19 +5,10 @@ from common.logging import *
 from common.helpers import *
 
 
-def parse_line(line, graph):
-    # Example or src and dst properties for regex
-    # <P Name="Src">10#out:1</P>
-    # <P Name="Dst">16#in:1</P>
-
-    # Get the source of the edge
-    sources = line.findall('.//P[@Name="Src"]')
-    if len(sources) != 1:
-        raise Exception(f'Invalid edge, none or too many sources provided {print_xml(line)}')
-
-    source = re.search(r'(.*)#(out:|enable)(.*)', sources[0].text)
+def create_edges(line, src_element, destinations, graph):
+    source = re.search(r'(.*)#(\w+):?(.*)', src_element.text)
     if source is None or len(source.groups()) != 3:
-        raise Exception(f'Invalid source, unrecognized format {print_xml(sources[0])}')
+        raise Exception(f'Invalid source, unrecognized format {src_element}')
 
     # match.group(0) is the full text
     src = source.group(1)
@@ -25,10 +16,10 @@ def parse_line(line, graph):
 
     # Edges can have multiple branches, for example, when one output connected with
     # multiple inputs. In that case, we need to consider each as a separate edge.
-    for dest in line.findall('.//P[@Name="Dst"]'):
+    for dest in destinations:
         # Make a copy of the data to make a new edge
         data = dt.EdgeData()
-        destination = re.search(r'(.*)#(in:|enable)(.*)', dest.text)
+        destination = re.search(r'(.*)#(\w+):?(.*)', dest.text)
 
         if destination is None or len(destination.groups()) != 3:
             raise Exception(f'Invalid destination, unrecognized format {print_xml(line)}')
@@ -45,3 +36,21 @@ def parse_line(line, graph):
         edge = dt.Edge()
         edge.data = data
         graph.elements.edges.append(edge)
+
+
+def parse_line(line, graph):
+    # Example or src and dst properties for regex
+    # <P Name="Src">10#out:1</P>
+    # <P Name="Dst">16#in:1</P>
+
+    # Get the source of the edge
+    sources = line.findall('.//P[@Name="Src"]')
+    if len(sources) < 1:
+        raise Exception(f'Invalid edge, no sources provided {print_xml(line)}')
+
+    destinations = line.findall('.//P[@Name="Dst"]')
+    if len(destinations) < 1:
+        return
+
+    for source in sources:
+        create_edges(line, source, destinations, graph)
