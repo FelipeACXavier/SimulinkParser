@@ -9,10 +9,10 @@ from common.logging import *
 from common.helpers import *
 
 
-def create_implicit_port_node(text, data):
+def create_implicit_port_node(text, data, graph):
     try:
         match = re.match(r'(.*)_(input|output)_(.*)', text)
-        return bp.create_port_node(match.group(1), match.group(3), match.group(2))
+        return bp.create_port_node(match.group(1), match.group(3), match.group(2), graph=graph)
     except:
         LOG_ERROR(f'Failed to find match for:\n{print_json(data)}')
 
@@ -34,13 +34,13 @@ def get_edge_connections(data, graph):
 
     # In case no source or target are found, then these are implicit and we must define the nodes here
     if source is None:
-        node, edge = create_implicit_port_node(data.source, data)
+        node, edge = create_implicit_port_node(data.source, data, graph)
         graph.elements.nodes.append(node)
         graph.elements.edges.append(edge)
         source = node.data
 
     if target is None:
-        node, edge = create_implicit_port_node(data.target, data)
+        node, edge = create_implicit_port_node(data.target, data, graph)
         graph.elements.nodes.append(node)
         graph.elements.edges.append(edge)
         target = node.data
@@ -119,6 +119,8 @@ def parse_blocks(system, parent_id, graph, systems):
             bp.parse_constant(block, parent_id, graph)
         elif block_type == 'EnablePort':
             bp.parse_enable_port(block, parent_id, graph)
+        elif block_type == 'Inport' or block_type == 'Outport':
+            bp.parse_port_block(block, parent_id, graph)
         else:
             bp.parse_primitive(block, parent_id, graph)
 

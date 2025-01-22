@@ -17,12 +17,12 @@ def create_node_data(block, labels, visibility, kind=None):
     data.labels = labels
 
     # These are constant for Simulink
-    data.properties.visibility = 'Public'
+    data.properties.visibility = visibility
     data.properties.kind = kind if kind else 'method'
     data.properties.simulinkType = block.attrib["BlockType"]
     data.properties.simpleName = block.attrib["Name"]
     data.properties.qualifiedName = block.attrib["Name"]
-    data.properties.sourceText += f'{ET.tostring(block, encoding='unicode')}'
+    data.properties.sourceText = f'{ET.tostring(block, encoding='unicode')}'
 
     return data
 
@@ -33,10 +33,10 @@ def create_variable(element, parent):
     data.labels = ['Variable']
 
     data.properties.kind = 'parameter'
-    data.properties.visibility = 'Public'
+    data.properties.visibility = 'public'
     data.properties.simpleName = element.attrib["Name"]
     data.properties.qualifiedName = element.attrib["Name"]
-    data.properties.sourceText += f'{ET.tostring(element, encoding='unicode')}'
+    data.properties.sourceText = f'{ET.tostring(element, encoding='unicode')}'
 
     node = dt.Node()
     node.data = data
@@ -88,7 +88,7 @@ def create_port_node(parent_id, uid, port_type, name=None, graph=None):
 
     qualified_name = name if name else f'{parent_id}_{port_type}_{uid}'
     n_data.properties.kind = 'method'
-    n_data.properties.visibility = 'Public'
+    n_data.properties.visibility = 'public'
     n_data.properties.simpleName = qualified_name
     n_data.properties.qualifiedName = qualified_name
     n_data.properties.sourceText = f'port_label(\'{port_type}\', {uid}, \'{qualified_name}\')'
@@ -139,12 +139,12 @@ def parse_old_style_ports(port, parent_id, graph):
     n_out = int(match.group(3))
 
     for inp in range(n_in):
-        node, edge = create_port_node(parent_id, inp + 1, 'input')
+        node, edge = create_port_node(parent_id, inp + 1, 'input', graph=graph)
         graph.elements.nodes.append(node)
         graph.elements.edges.append(edge)
 
     for out in range(n_out):
-        node, edge = create_port_node(parent_id, out + 1, 'output')
+        node, edge = create_port_node(parent_id, out + 1, 'output', graph=graph)
         graph.elements.nodes.append(node)
         graph.elements.edges.append(edge)
 
@@ -154,18 +154,18 @@ def parse_new_style_ports(port, parent_id, graph):
     n_out = 0 if 'out' not in port.attrib else int(port.attrib['out'])
 
     for inp in range(n_in):
-        node, edge = create_port_node(parent_id, inp + 1, 'input')
+        node, edge = create_port_node(parent_id, inp + 1, 'input', graph=graph)
         graph.elements.nodes.append(node)
         graph.elements.edges.append(edge)
 
     for out in range(n_out):
-        node, edge = create_port_node(parent_id, out + 1, 'output')
+        node, edge = create_port_node(parent_id, out + 1, 'output', graph=graph)
         graph.elements.nodes.append(node)
         graph.elements.edges.append(edge)
 
 
 def parse_block_port(port, port_type, parent_id, graph):
-    node, edge = create_port_node(parent_id, 1, 'input' if port_type == 'Inport' else 'output')
+    node, edge = create_port_node(parent_id, 1, 'input' if port_type == 'Inport' else 'output', graph=graph)
     graph.elements.nodes.append(node)
     graph.elements.edges.append(edge)
 
@@ -226,7 +226,7 @@ def parse_s_function(block, parent_id, graph):
 
     # Create node and define its unique id
     node = dt.Node()
-    node.data = create_node_data(block, ['Structure'], 'Public', 'class')
+    node.data = create_node_data(block, ['Structure'], 'public', 'class')
 
     names = block.findall('.//P[@Name="FunctionName"]')
     if len(names) != 1:
@@ -260,7 +260,7 @@ def parse_subsystem(block, parent_id, graph, systems):
 
     # Create node and define its unique id
     node = dt.Node()
-    node.data = create_node_data(block, ['Container'], 'Public', 'package')
+    node.data = create_node_data(block, ['Container'], 'public', 'package')
 
     # We now must define the ports, i.e., functions
     parse_ports(block, node, graph)
@@ -283,7 +283,7 @@ def parse_reference(block, parent_id, graph):
 
     # Create node and define its unique id
     node = dt.Node()
-    node.data = create_node_data(block, ['Structure'], 'Public', 'class')
+    node.data = create_node_data(block, ['Structure'], 'public', 'class')
 
     names = block.findall('.//P[@Name="SourceBlock"]')
     if len(names) != 1:
@@ -301,16 +301,41 @@ def parse_reference(block, parent_id, graph):
 
 
 def parse_constant(block, parent_id, graph):
+    # A constant block is still a block and, therefore, it contains ports what makes this type of block a class.
+    # So, to keep the idea of a constant, it makes sense to add a class and a constant as a property of that class.
     LOG_DEBUG(f'Parsing Terminator: {block.attrib["Name"]}')
 
     # Create node and define its unique id
     node = dt.Node()
-    node.data = create_node_data(block, ['Variable'], 'Public', 'field')
+    node.data = create_node_data(block, ['Structure'], 'public', 'class')
 
     graph.elements.nodes.append(node)
 
+    # Create relation between class and parent
+    graph.elements.edges.append(create_contains_edge(parent_id, node.data.id))
+
+    # Create constant node
+    value = block.findall('.//P[@Name="Value"]')
+
+    data = dt.NodeData()
+    data.id = f'constant_{id_from_element(block)}'
+    data.labels = ['Variable']
+
+    # These are constant for Simulink
+    data.properties.kind = 'field'
+    data.properties.visibility = 'public'
+    data.properties.simulinkType = block.attrib["BlockType"]
+    data.properties.simpleName = f'Constant {block.attrib["Name"]}'
+    data.properties.qualifiedName = f'Constant {block.attrib["Name"]}'
+    data.properties.sourceText = f'{ET.tostring(value[0], encoding='unicode')}' if len(value) > 0 else ""
+
+    c_node = dt.Node()
+    c_node.data = data
+
+    graph.elements.nodes.append(c_node)
+
     # Make sure this block is contained in the parent node
-    graph.elements.edges.append(create_contains_edge(parent_id, node.data.id, 'hasVariable'))
+    graph.elements.edges.append(create_contains_edge(node.data.id, c_node.data.id, 'hasVariable'))
 
 
 def parse_enable_port(block, parent_id, graph):
@@ -321,12 +346,28 @@ def parse_enable_port(block, parent_id, graph):
     return
 
 
+def parse_port_block(block, parent_id, graph):
+    LOG_INFO(f'Parsing {block.attrib["BlockType"]}: {block.attrib["Name"]}')
+
+    # Create node and define its unique id
+    node = dt.Node()
+    node.data = create_node_data(block, ['Structure'], 'public', 'class')
+
+    graph.elements.nodes.append(node)
+
+    # Primitives are blocks, so they must also have ports
+    parse_ports(block, node, graph)
+
+    # Make sure this block is contained in the parent node
+    graph.elements.edges.append(create_contains_edge(parent_id, node.data.id))
+
+
 def parse_primitive(block, parent_id, graph):
     LOG_DEBUG(f'Parsing {block.attrib["BlockType"]}: {block.attrib["Name"]}')
 
     # Create node and define its unique id
     node = dt.Node()
-    node.data = create_node_data(block, ['Structure'], 'Public', 'class')
+    node.data = create_node_data(block, ['Structure'], 'public', 'class')
 
     graph.elements.nodes.append(node)
 

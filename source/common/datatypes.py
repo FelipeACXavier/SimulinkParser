@@ -26,7 +26,7 @@ class NodeProperties:
     qualifiedName: str
     kind: Optional[str] = field(default=None, metadata=config(exclude=lambda f: f is None))
     visibility: Optional[str] = field(default=None, metadata=config(exclude=lambda f: f is None))
-    sourceText: Optional[str] = field(default="", metadata=config(exclude=lambda f: f is None))
+    sourceText: Optional[str] = field(default=None, metadata=config(exclude=lambda f: f is None))
     metaSrc: Optional[str] = field(default=None, metadata=config(exclude=lambda f: f is None))
     simulinkType: Optional[str] = field(default=None, metadata=config(exclude=lambda f: f is None))
     docComment: Optional[str] = field(default=None, metadata=config(exclude=lambda f: f is None))
