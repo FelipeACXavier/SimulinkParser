@@ -15,6 +15,7 @@ def create_implicit_port_node(text, data, graph):
         return bp.create_port_node(match.group(1), match.group(3), match.group(2), graph=graph)
     except:
         LOG_ERROR(f'Failed to find match for:\n{print_json(data)}')
+        raise
 
 
 def get_edge_connections(data, graph):
@@ -34,15 +35,11 @@ def get_edge_connections(data, graph):
 
     # In case no source or target are found, then these are implicit and we must define the nodes here
     if source is None:
-        node, edge = create_implicit_port_node(data.source, data, graph)
-        graph.elements.nodes.append(node)
-        graph.elements.edges.append(edge)
+        node, _ = create_implicit_port_node(data.source, data, graph)
         source = node.data
 
     if target is None:
-        node, edge = create_implicit_port_node(data.target, data, graph)
-        graph.elements.nodes.append(node)
-        graph.elements.edges.append(edge)
+        node, _ = create_implicit_port_node(data.target, data, graph)
         target = node.data
 
     return source, target
@@ -125,9 +122,9 @@ def parse_blocks(system, parent_id, graph, systems):
             bp.parse_primitive(block, parent_id, graph)
 
 
-def parse_lines(system, graph):
+def parse_lines(system, parent_id, graph, tree):
     for line in system.findall('./Line'):
-        lp.parse_line(line, graph)
+        lp.parse_line(line, parent_id, graph, tree)
 
 
 def parse_XML(xml_file, parent_id, graph, systems):
@@ -140,4 +137,4 @@ def parse_XML(xml_file, parent_id, graph, systems):
 
     # Iterate news items
     parse_blocks(system, parent_id, graph, systems)
-    parse_lines(system, graph)
+    parse_lines(system, parent_id, graph, tree)

@@ -31,8 +31,8 @@ def create_module(uid):
     data.labels = ['Container']
     data.properties.simpleName = name
     data.properties.qualifiedName = name
-    data.properties.visibility = "Public"
-    data.properties.kind = "package"
+    data.properties.visibility = 'public'
+    data.properties.kind = 'package'
 
     node = dt.Node()
     node.data = data

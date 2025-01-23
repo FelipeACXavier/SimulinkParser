@@ -81,13 +81,13 @@ def create_contains_edge(parent_id, child_id, label='contains'):
     return edge
 
 
-def create_port_node(parent_id, uid, port_type, name=None, graph=None):
+def create_port_node(parent_id, uid, port_type, name=None, graph=None, level='', kind='method'):
     n_data = dt.NodeData()
-    n_data.id = f'{parent_id}_{port_type}_{uid}'
+    n_data.id = f'{parent_id}_{port_type}{level}_{uid}'
     n_data.labels = ['Operation']
 
     qualified_name = name if name else f'{parent_id}_{port_type}_{uid}'
-    n_data.properties.kind = 'method'
+    n_data.properties.kind = kind
     n_data.properties.visibility = 'public'
     n_data.properties.simpleName = qualified_name
     n_data.properties.qualifiedName = qualified_name
@@ -105,28 +105,26 @@ def create_port_node(parent_id, uid, port_type, name=None, graph=None):
     edge = dt.Edge()
     edge.data = e_data
 
-    # Add return type
-    if graph is not None:
-        return_data = dt.EdgeData()
-        return_data.id = f'return_{node.data.id}'
-        return_data.label = 'returnType'
-        return_data.source = n_data.id
-        return_data.target = MATLAB_TYPE
-        return_data.properties.kind = 'type'
+    return_data = dt.EdgeData()
+    return_data.id = f'return_{node.data.id}'
+    return_data.label = 'returnType'
+    return_data.source = n_data.id
+    return_data.target = MATLAB_TYPE
+    return_data.properties.kind = 'type'
 
-        return_edge = dt.Edge()
-        return_edge.data = return_data
+    return_edge = dt.Edge()
+    return_edge.data = return_data
 
-        graph.elements.edges.append(return_edge)
+    graph.elements.nodes.append(node)
+    graph.elements.edges.append(edge)
+    graph.elements.edges.append(return_edge)
 
     return node, edge
 
 
 def parse_new_named_ports(port_info, parent_id, graph):
     for match, port_type, uid, name in re.findall(r"(port_label\('(input|output)',\s*(\d{1,3}),\s*'(.*)'\))", port_info.text):
-        node, edge = create_port_node(parent_id, uid, port_type, name, graph)
-        graph.elements.nodes.append(node)
-        graph.elements.edges.append(edge)
+        create_port_node(parent_id, uid, port_type, name, graph)
 
 
 def parse_old_style_ports(port, parent_id, graph):
@@ -139,14 +137,10 @@ def parse_old_style_ports(port, parent_id, graph):
     n_out = int(match.group(3))
 
     for inp in range(n_in):
-        node, edge = create_port_node(parent_id, inp + 1, 'input', graph=graph)
-        graph.elements.nodes.append(node)
-        graph.elements.edges.append(edge)
+        create_port_node(parent_id, inp + 1, 'input', graph=graph)
 
     for out in range(n_out):
-        node, edge = create_port_node(parent_id, out + 1, 'output', graph=graph)
-        graph.elements.nodes.append(node)
-        graph.elements.edges.append(edge)
+        create_port_node(parent_id, out + 1, 'output', graph=graph)
 
 
 def parse_new_style_ports(port, parent_id, graph):
@@ -154,20 +148,14 @@ def parse_new_style_ports(port, parent_id, graph):
     n_out = 0 if 'out' not in port.attrib else int(port.attrib['out'])
 
     for inp in range(n_in):
-        node, edge = create_port_node(parent_id, inp + 1, 'input', graph=graph)
-        graph.elements.nodes.append(node)
-        graph.elements.edges.append(edge)
+        create_port_node(parent_id, inp + 1, 'input', graph=graph)
 
     for out in range(n_out):
-        node, edge = create_port_node(parent_id, out + 1, 'output', graph=graph)
-        graph.elements.nodes.append(node)
-        graph.elements.edges.append(edge)
+        create_port_node(parent_id, out + 1, 'output', graph=graph)
 
 
 def parse_block_port(port, port_type, parent_id, graph):
-    node, edge = create_port_node(parent_id, 1, 'input' if port_type == 'Inport' else 'output', graph=graph)
-    graph.elements.nodes.append(node)
-    graph.elements.edges.append(edge)
+    create_port_node(parent_id, 1, 'input' if port_type == 'Inport' else 'output', graph=graph)
 
 
 def parse_ports(block, parent, graph):
@@ -263,7 +251,7 @@ def parse_subsystem(block, parent_id, graph, systems):
     node.data = create_node_data(block, ['Container'], 'public', 'package')
 
     # We now must define the ports, i.e., functions
-    parse_ports(block, node, graph)
+    # parse_ports(block, node, graph)
 
     graph.elements.nodes.append(node)
 
@@ -349,17 +337,13 @@ def parse_enable_port(block, parent_id, graph):
 def parse_port_block(block, parent_id, graph):
     LOG_INFO(f'Parsing {block.attrib["BlockType"]}: {block.attrib["Name"]}')
 
-    # Create node and define its unique id
-    node = dt.Node()
-    node.data = create_node_data(block, ['Structure'], 'public', 'class')
+    # A port block is actually a method, not a class
+    port_elements = block.findall('./P[@Name="Port"]')
+    port_id = port_elements[0].text if len(port_elements) > 0 else 1
+    port_type = "input" if block.attrib["BlockType"] == 'Inport' else 'output'
 
-    graph.elements.nodes.append(node)
-
-    # Primitives are blocks, so they must also have ports
-    parse_ports(block, node, graph)
-
-    # Make sure this block is contained in the parent node
-    graph.elements.edges.append(create_contains_edge(parent_id, node.data.id))
+    create_port_node(parent_id, port_id, port_type,
+                     block.attrib["Name"], graph=graph, level=f'_{system_level()}', kind='function')
 
 
 def parse_primitive(block, parent_id, graph):

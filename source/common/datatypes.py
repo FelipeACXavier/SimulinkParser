@@ -24,6 +24,7 @@ from dataclasses_json import dataclass_json, config, LetterCase
 class NodeProperties:
     simpleName: str
     qualifiedName: str
+    description: Optional[str] = field(default=None, metadata=config(exclude=lambda f: f is None))
     kind: Optional[str] = field(default=None, metadata=config(exclude=lambda f: f is None))
     visibility: Optional[str] = field(default=None, metadata=config(exclude=lambda f: f is None))
     sourceText: Optional[str] = field(default=None, metadata=config(exclude=lambda f: f is None))
